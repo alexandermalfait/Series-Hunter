@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                       xmlns:containers="mx.containers.*"
+                       xmlns:controls="mx.controls.*" xmlns:gui="be.alex.serieshunter.gui.*"
+                       applicationComplete="initApp()">
+    <fx:Script>
+    <![CDATA[
+        import be.alex.serieshunter.data.Show;
+        import be.alex.serieshunter.data.ShowList;
+        import be.alex.serieshunter.util.jobs.JobQueue;
+        import be.alex.serieshunter.util.jobs.JobQueueEvent;
+
+        private function initApp():void {
+            showList.showSelectedListener = function(show:Show) {
+                showComponent.show = show
+            }
+
+            JobQueue.instance.addEventListener("jobStarted", function(event:JobQueueEvent) {
+                progressBar.label = event.job.title
+                progressBar.indeterminate = true
+            })
+
+            JobQueue.instance.addEventListener("idle", function(event:Event) {
+                progressBar.label = "Idle..."
+                progressBar.indeterminate = false
+            })
+
+            ShowList.instance.addEventListener("savedShow", function(event:Event) {
+                showList.refreshShows()
+                showComponent.refresh()
+            })
+
+            showList.checkForDeletedShows()
+        }
+
+        private function updateAll():void {
+            ShowList.instance.updateShows()
+        }
+        ]]>
+  </fx:Script>
+
+    <containers:VBox height="100%" width="100%">
+        <containers:HBox height="100%" width="100%">
+            <gui:ShowListComponent height="100%" id="showList"/>
+
+            <gui:ShowComponent height="100%" width="100%" id="showComponent"/>
+        </containers:HBox>
+
+        <containers:HBox textAlign="right" width="100%">
+            <controls:Spacer width="100%"/>
+
+            <controls:Button click="updateAll()" label="Update all shows"/>
+
+            <controls:ProgressBar id="progressBar" labelPlacement="right" label="Idle.."/>
+        </containers:HBox>
+    </containers:VBox>
+
+</s:WindowedApplication>

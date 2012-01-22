@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+         xmlns:mx="library://ns.adobe.com/flex/mx"
+         xmlns:controls="mx.controls.*" xmlns:containers="mx.containers.*" creationComplete="refreshShows()">
+
+    <fx:Script>
+    <![CDATA[
+        import be.alex.serieshunter.data.Show;
+        import be.alex.serieshunter.data.ShowList;
+        import be.alex.serieshunter.util.Lists;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Alert;
+        import mx.events.CloseEvent;
+
+        [Bindable]
+        private var shows:ArrayCollection = new ArrayCollection()
+
+        private var _showSelectedListener:Function
+
+        public function set showSelectedListener(value:Function):void {
+            _showSelectedListener = value;
+        }
+
+        private function addShow():void {
+            var form = new ShowForm()
+
+            form.addEventListener("showAdded", refreshShows)
+
+            form.open()
+        }
+
+        public function refreshShows(event:Event = null):void {
+            shows.removeAll()
+            shows.addAll(ShowList.instance.shows)
+        }
+
+        private function removeShow():void {
+            if (showsGrid.selectedItem) {
+                ShowList.instance.removeShow(showsGrid.selectedItem as Show)
+            }
+        }
+
+        private function showSelected():void {
+            _showSelectedListener(showsGrid.selectedItem)
+        }
+
+        private function formatDateColumn(item:Object, column:DataGridColumn):String {
+            var nextAirDate:Date = Show(item).nextAirDate;
+
+            if (nextAirDate) {
+                return nextAirDate.toDateString()
+            }
+            else {
+                return ""
+            }
+        }
+
+        public function checkForDeletedShows():void {
+            Lists.each(ShowList.instance.shows, function(show:Show) {
+                if(!show.pathExists) {
+                    var alert = Alert.show(
+                        "Folder " + show.path + " for show " + show.name + " doesn't exist on disk anymore. Remove show?",
+                        "Missing folder",
+                        Alert.YES | Alert.NO
+                    )
+
+                    alert.addEventListener(CloseEvent.CLOSE, function(evt: CloseEvent) {
+                        if(evt.detail == Alert.YES) {
+                            ShowList.instance.removeShow(show)
+                        }
+                    })
+                }
+            })
+        }
+        ]]>
+  </fx:Script>
+
+    <controls:DataGrid id="showsGrid" dataProvider="{shows}" minWidth="350" height="100%" change="showSelected()">
+        <controls:columns>
+            <mx:DataGridColumn dataField="name" headerText="Name"/>
+
+            <mx:DataGridColumn dataField="numberOfEpisodesWanted" headerText="# wanted" width="60"/>
+
+            <mx:DataGridColumn dataField="nextAirDate" headerText="Next Air Date" width="120"
+                               labelFunction="formatDateColumn"/>
+
+        </controls:columns>
+    </controls:DataGrid>
+
+    <containers:HBox width="100%">
+        <s:Button click="addShow()" label="Add Show" />
+
+        <s:Button click="removeShow()" label="Remove Selection" />
+    </containers:HBox>
+    
+</mx:VBox>

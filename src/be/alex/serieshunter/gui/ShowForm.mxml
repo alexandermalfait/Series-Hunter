@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" width="500" height="300" alwaysInFront="true">
+    <mx:Script>
+    <![CDATA[
+        import be.alex.serieshunter.data.Show;
+        import be.alex.serieshunter.data.ShowList;
+
+        private function browsePath():void {
+            var folderChooser:File = new File(ShowList.instance.lastShowPath);
+
+            folderChooser.browseForDirectory("Choose show folder")
+
+            folderChooser.addEventListener(Event.SELECT, function(event:Event):void {
+                var folder = event.target as File
+
+                ShowList.instance.lastShowPath = folder.nativePath
+
+                showPath.text = folder.nativePath
+
+                showName.text = folder.name
+
+                showUrl.text = "http://epguides.com/" + folder.name.toLowerCase().replace(/[^a-z0-9]/ig, "") + "/"
+            })
+        }
+
+        private function addShow():void {
+            var show = new Show()
+
+            show.path = showPath.text
+
+            show.name = showName.text
+
+            show.epguidesUrl = showUrl.text
+
+            ShowList.instance.saveShow(show)
+
+            this.dispatchEvent(new Event("showAdded"))
+
+            close()
+        }
+        ]]>
+  </mx:Script>
+
+    <mx:Form>
+        <mx:FormHeading label="Show Details"/>
+
+        <mx:FormItem required="true" direction="horizontal" label="Local Path">
+            <mx:TextInput id="showPath"/>
+
+            <mx:Button click="browsePath()" label="Browse"/>
+        </mx:FormItem>
+
+        <mx:FormItem required="true" direction="horizontal" label="Name">
+            <mx:TextInput id="showName"/>
+        </mx:FormItem>
+
+        <mx:FormItem required="true" direction="horizontal" label="EpGuides.com URL">
+            <mx:TextInput id="showUrl"/>
+        </mx:FormItem>
+
+        <mx:Button label="Add show" click="addShow()"/>
+    </mx:Form>
+
+</mx:Window>

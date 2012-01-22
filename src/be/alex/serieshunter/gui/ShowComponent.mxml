@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:containers="mx.containers.*">
+
+    <mx:Script>
+    <![CDATA[
+        import be.alex.serieshunter.data.Episode;
+        import be.alex.serieshunter.data.Show;
+        import be.alex.serieshunter.data.ShowList;
+        import be.alex.serieshunter.util.Arrays;
+        import be.alex.serieshunter.util.EpisodeFinder;
+        import be.alex.serieshunter.util.FileNameInjector;
+
+        import mx.collections.ArrayCollection;
+
+        [Bindable]
+        private var _show:Show;
+
+        [Bindable]
+        private var episodes:ArrayCollection = new ArrayCollection()
+
+        public function set show(show:Show):void {
+            _show = show
+
+            refresh()
+        }
+
+        private function formatDateColumn(item:Object, column:AdvancedDataGridColumn):String {
+            return Episode(item).airDate.toLocaleDateString()
+        }
+
+        private function styleWantedColumn(item:Object, column:AdvancedDataGridColumn):Object {
+            switch (Episode(item).status) {
+                case "present":
+                    return { color: "#59e974" }
+                case "wanted":
+                    var options:Object = { color: "#e57b56" };
+
+                    if (Episode(item).isAired) {
+                        options.fontWeight = "bold"
+                    }
+
+                    return options
+                case "archived":
+                    return { color: "silver" }
+            }
+
+            return {}
+        }
+
+        private function markSelectionArchived():void {
+            Arrays.each(episodesGrid.selectedItems, function(episode:Episode) {
+                if (episode.status != "present") {
+                    episode.status = "archived"
+                }
+            })
+
+            ShowList.instance.saveShow(_show)
+
+            episodesGrid.dataProvider.refresh()
+        }
+
+        public function refresh():void {
+            if (_show) {
+                episodes.removeAll()
+                episodes.addAll(new ArrayCollection(_show.episodes.sortOn("code", Array.DESCENDING)))
+            }
+        }
+
+        private function injectTitleInSelection():void {
+            var finder:EpisodeFinder = new EpisodeFinder(_show);
+
+            finder.determinesEpisodesOnDisk()
+
+            Arrays.each(episodesGrid.selectedItems, function(episode:Episode) {
+                var episodeOnDisk:Episode = finder.getEpisodeOnDisk(episode)
+
+                if (episodeOnDisk != null) {
+                    new FileNameInjector(episodeOnDisk).injectTitle()
+                }
+            })
+
+            ShowList.instance.saveShow(_show)
+
+            episodesGrid.dataProvider.refresh()
+        }
+        ]]>
+  </mx:Script>
+
+    <mx:Label text="{_show.name}" fontSize="20"/>
+
+    <mx:AdvancedDataGrid id="episodesGrid" dataProvider="{episodes}" height="100%" width="100%"
+                         allowMultipleSelection="true" sort="">
+        <mx:columns>
+            <mx:AdvancedDataGridColumn dataField="code" width="100"/>
+
+            <mx:AdvancedDataGridColumn dataField="name"/>
+
+            <mx:AdvancedDataGridColumn dataField="airDate" labelFunction="formatDateColumn" width="120"/>
+
+            <mx:AdvancedDataGridColumn dataField="status" styleFunction="styleWantedColumn" width="100"/>
+
+            <mx:AdvancedDataGridColumn dataField="fileName"/>
+        </mx:columns>
+    </mx:AdvancedDataGrid>
+
+    <containers:HBox>
+        <mx:Button label="Mark archived" click="markSelectionArchived()"/>
+
+        <mx:Button label="Inject title in file names" click="injectTitleInSelection()"/>
+    </containers:HBox>
+</mx:VBox>
